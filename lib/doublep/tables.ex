@@ -19,10 +19,6 @@ defmodule Doublep.Tables do
     Server.get_state(id)
   end
 
-  def get_table_state!(table_id) do
-    Server.get_state(table_id)
-  end
-
   def create_random_table() do
     id = UUID.generate()
 

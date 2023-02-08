@@ -83,8 +83,15 @@ defmodule Doublep.Tables.Server do
 
   def handle_call(:reveal, _, %{table: table} = state) do
     with :ok <- state_allowed?(state, :revealing) do
-      PubSub.broadcast!(Doublep.PubSub, topic(table.id), :cards_revealed)
-      {:reply, :ok, Map.put(state, :state, :revealing)}
+      next_state = Map.put(state, :state, :revealing)
+
+      PubSub.broadcast!(
+        Doublep.PubSub,
+        topic(table.id),
+        {:cards_revealed, get_state_projection(next_state)}
+      )
+
+      {:reply, :ok, next_state}
     else
       error -> {:reply, error, state}
     end
@@ -92,8 +99,15 @@ defmodule Doublep.Tables.Server do
 
   def handle_call(:next_hand, _, %{table: table} = state) do
     with :ok <- state_allowed?(state, :picking) do
-      PubSub.broadcast!(Doublep.PubSub, topic(table.id), :next_hand_dealt)
-      {:reply, :ok, prepare_next_hand(state)}
+      next_state = prepare_next_hand(state)
+
+      PubSub.broadcast!(
+        Doublep.PubSub,
+        topic(table.id),
+        {:next_hand_dealt, get_state_projection(next_state)}
+      )
+
+      {:reply, :ok, next_state}
     else
       error -> {:reply, error, state}
     end
@@ -137,8 +151,8 @@ defmodule Doublep.Tables.Server do
     active_players
   end
 
-  defp list_players(%{dealer: dealer} = state) do
-    Map.put(list_players(state), dealer.pid, dealer)
+  defp list_players(%{dealer: dealer, active_players: active_players}) do
+    Map.put(active_players, dealer.pid, dealer)
   end
 
   defp handle_join({:dealer, name, pid}, %{dealer: nil} = state) do

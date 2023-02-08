@@ -98,16 +98,16 @@ defmodule DoublepWeb.TableLive.Show do
   end
 
   @impl true
-  def handle_info(:cards_revealed, socket) do
-    {:noreply, socket |> assign(:current_state, :revealing)}
+  def handle_info({:cards_revealed, new_state}, socket) do
+    {:noreply, socket |> assign_new_state(new_state)}
   end
 
   @impl true
-  def handle_info(:next_hand_dealt, socket) do
+  def handle_info({:next_hand_dealt, new_state}, socket) do
     {:noreply,
      socket
      |> assign(:own_pick, nil)
-     |> assign_table_state!(socket.assigns.table.id)}
+     |> assign_new_state(new_state)}
   end
 
   defp handle_player_left(%{pid: pid}, socket) do
@@ -159,7 +159,7 @@ defmodule DoublepWeb.TableLive.Show do
   defp handle_participation(%Table{} = table, socket) do
     socket =
       socket
-      |> assign_table_state(table)
+      |> get_and_assign_state(table)
       |> maybe_redirect(socket.assigns.live_action)
 
     {:ok, socket}
@@ -192,15 +192,13 @@ defmodule DoublepWeb.TableLive.Show do
     |> assign_new(:table, fn -> Tables.get_table_by_slug(slug) end)
   end
 
-  defp assign_table_state(socket, %Table{} = table) do
-    Tables.get_table_state(table)
-    |> Map.to_list()
-    |> Enum.reduce(socket, fn {key, value}, socket -> assign(socket, key, value) end)
+  defp get_and_assign_state(socket, %Table{} = table) do
+    socket
+    |> assign_new_state(Tables.get_table_state(table))
   end
 
-  defp assign_table_state!(socket, table_id) do
-    Tables.get_table_state!(table_id)
-    |> Map.to_list()
+  defp assign_new_state(socket, new_state) do
+    new_state
     |> Enum.reduce(socket, fn {key, value}, socket -> assign(socket, key, value) end)
   end
 
