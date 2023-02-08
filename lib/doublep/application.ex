@@ -7,6 +7,17 @@ defmodule Doublep.Application do
 
   @impl true
   def start(_type, _args) do
+    if Mix.env() == :prod do
+      :ok = :opentelemetry_cowboy.setup()
+      :ok = OpentelemetryPhoenix.setup()
+      :ok = OpentelemetryLiveView.setup()
+
+      :ok =
+        Doublep.Repo.config()
+        |> Keyword.fetch!(:telemetry_prefix)
+        |> OpentelemetryEcto.setup()
+    end
+
     children = [
       # Start the Telemetry supervisor
       DoublepWeb.Telemetry,
