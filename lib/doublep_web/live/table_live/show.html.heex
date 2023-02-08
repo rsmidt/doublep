@@ -1,0 +1,79 @@
+<div class="p-4">
+  <div :if={@live_action == :join}>
+    <p class="text-slate-50">
+      Welcome to this Planing Poker room. Please choose a name and your role in this table.
+    </p>
+    <div class="flex items-center space-x-2 mt-2">
+      <input
+        type="text"
+        placeholder="Name"
+        class={[
+          "block bg-slate-900 rounded-lg border-slate-700 py-[7px] px-[11px]",
+          "text-slate-50 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm sm:leading-6"
+        ]}
+      />
+      <.button
+        :if={role_available?(:dealer, @active_players)}
+        class="w-max"
+        phx-click="join_dealer"
+      >
+        Join as Dealer
+      </.button>
+      <.button
+        :if={role_available?(:player, @active_players)}
+        class="w-max"
+        phx-click="join_player"
+      >
+        Join as Player
+      </.button>
+    </div>
+  </div>
+  <div :if={@live_action == :show}>
+    <p>You are participating as a <%= @own_role %>.</p>
+    <div class="flex mt-4 h-56 space-x-4 rounded-[24px] w-full p-4 border-2 border-slate-800">
+      <p :if={filter_players(@active_players) == %{}} class="self-center mx-auto">
+        No one joined yet :(
+      </p>
+      <div
+        :for={{pid, player} <- filter_players(@active_players)}
+        class="rounded-lg w-24 h-full p-3 text-center border-slate-700 bg-slate-800"
+      >
+        <%= case @current_state do %>
+          <% :picking -> %>
+            <Heroicons.x_circle :if={!Map.has_key?(@current_votes, pid)} />
+            <Heroicons.check_circle :if={Map.has_key?(@current_votes, pid)} />
+          <% :revealing -> %>
+            <div :if={Map.has_key?(@current_votes, pid)}><%= Map.get(@current_votes, pid) %></div>
+            <div :if={!Map.has_key?(@current_votes, pid)}>n/a</div>
+        <% end %>
+        <span><%= player.name %></span>
+      </div>
+    </div>
+    <div :if={@own_role == :player} class="flex space-x-4 mt-10 justify-center">
+      <div
+        :for={card <- @cards}
+        class={[
+          "flex rounded-lg w-14 h-14 h-full p-3 items-center justify-center border-slate-700 bg-slate-800",
+          "cursor-pointer hover:bg-slate-600",
+          @own_pick == card && "bg-slate-600"
+        ]}
+        phx-click={JS.push("pick", value: %{card: card})}
+      >
+        <%= card %>
+      </div>
+    </div>
+    <div :if={@own_role == :dealer} class="flex mt-10 space-x-2">
+      <.button :if={@current_state == :picking} phx-click="reveal">Reveal</.button>
+      <.button :if={@current_state == :revealing} phx-click="next_hand">Next Hand</.button>
+    </div>
+    <p class="mt-10">Link to this table:</p>
+    <div class="flex mt-2 space-x-2 items-center">
+      <div id="table-url" class="border border-2 border-slate-800 p-2 rounded">
+        <%= url(~p"/tables/#{@table.id}") %>
+      </div>
+      <.button id="table-copy-btn" phx-hook="CopyToClipboard" data-copy-target="#table-url">
+        Copy to Clipboard
+      </.button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,90 @@
+defmodule Doublep.Tables do
+  @moduledoc """
+  The Tables context.
+  """
+
+  import Ecto.Query, warn: false
+  alias Doublep.Tables.Server
+  alias Ecto.UUID
+  alias Doublep.Repo
+
+  alias Doublep.Tables.Table
+
+  def get_table_by_slug(slug) do
+    Repo.get_by(Table, slug: slug)
+  end
+
+  def get_table_state(%Table{id: id} = table) do
+    :ok = Server.ensure_initialized(table)
+    Server.get_state(id)
+  end
+
+  def get_table_state!(table_id) do
+    Server.get_state(table_id)
+  end
+
+  def create_random_table() do
+    id = UUID.generate()
+
+    new_table = %Table{
+      name: "Totally Random",
+      id: id,
+      slug: id
+    }
+
+    with {:ok, table} <- Repo.insert(new_table),
+         {:ok, _} <- Server.open_table(table) do
+      {:ok, table}
+    end
+  end
+
+  def register_pick(table_id, picker_pid, card) do
+    Server.register_pick(table_id, picker_pid, card)
+  end
+
+  def join_table(table_id, {role, pid}) do
+    Server.join_table(table_id, {role, "anon", pid})
+  end
+
+  def reveal(table_id) do
+    Server.reveal(table_id)
+  end
+
+  def next_hand(table_id) do
+    Server.next_hand(table_id)
+  end
+
+  def table_topic(), do: "tables"
+  def table_topic(table_id) when is_binary(table_id), do: table_topic() <> ":#{table_id}"
+
+  @doc """
+  Creates a table.
+
+  ## Examples
+
+      iex> create_table(%{field: value})
+      {:ok, %Table{}}
+
+      iex> create_table(%{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def create_table(attrs \\ %{}) do
+    %Table{}
+    |> Table.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking table changes.
+
+  ## Examples
+
+      iex> change_table(table)
+      %Ecto.Changeset{data: %Table{}}
+
+  """
+  def change_table(%Table{} = table, attrs \\ %{}) do
+    Table.changeset(table, attrs)
+  end
+end
