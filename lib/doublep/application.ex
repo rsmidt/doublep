@@ -6,8 +6,9 @@ defmodule Doublep.Application do
   use Application
 
   @impl true
+  @spec start(any, any) :: {:error, any} | {:ok, pid}
   def start(_type, _args) do
-    if Mix.env() == :prod do
+    if Application.get_env(:doublep, :instrument?) do
       :ok = :opentelemetry_cowboy.setup()
       :ok = OpentelemetryPhoenix.setup()
       :ok = OpentelemetryLiveView.setup()
