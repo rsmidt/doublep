@@ -38,17 +38,19 @@
       </p>
       <div
         :for={{pid, player} <- filter_players(@active_players)}
-        class="rounded-lg w-24 h-full p-3 text-center border-slate-700 bg-slate-800"
+        class="rounded-lg flex flex-col w-24 h-full p-3 text-center border-slate-700 bg-slate-800 relative"
       >
         <%= case @current_state do %>
           <% :picking -> %>
             <Heroicons.x_circle :if={!Map.has_key?(@current_votes, pid)} />
             <Heroicons.check_circle :if={Map.has_key?(@current_votes, pid)} />
           <% :revealing -> %>
-            <div :if={Map.has_key?(@current_votes, pid)}><%= Map.get(@current_votes, pid) %></div>
-            <div :if={!Map.has_key?(@current_votes, pid)}>n/a</div>
+            <div :if={Map.has_key?(@current_votes, pid)} class="text-6xl font-bold">
+              <%= Map.get(@current_votes, pid) %>
+            </div>
+            <div :if={!Map.has_key?(@current_votes, pid)} class="text-4xl font-bold">n/a</div>
         <% end %>
-        <span><%= player.name %></span>
+        <span class="absolute bottom-3 left-2/4 -translate-x-2/4"><%= player.name %></span>
       </div>
     </div>
     <div :if={@own_role == :player} class="flex space-x-4 mt-10 justify-center">
