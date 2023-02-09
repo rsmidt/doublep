@@ -65,7 +65,13 @@
       </div>
     </div>
     <div :if={@own_role == :dealer} class="flex mt-10 space-x-2">
-      <.button :if={@current_state == :picking} phx-click="reveal">Reveal</.button>
+      <.button
+        :if={@current_state == :picking}
+        disabled={map_size(@active_players) == 1}
+        phx-click="reveal"
+      >
+        Reveal
+      </.button>
       <.button :if={@current_state == :revealing} phx-click="next_hand">Next Hand</.button>
     </div>
     <p class="mt-10">Link to this table:</p>

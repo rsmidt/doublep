@@ -232,6 +232,7 @@ defmodule DoublepWeb.CoreComponents do
         "phx-submit-loading:opacity-75 rounded-lg bg-slate-700 hover:bg-slate-600 py-2 px-3",
         "focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500",
         "text-sm font-semibold leading-6 text-slate-50 active:text-slate-50/80",
+        "disabled:cursor-not-allowed disabled:bg-slate-800 text:bg-slate-700",
         @class
       ]}
       {@rest}
