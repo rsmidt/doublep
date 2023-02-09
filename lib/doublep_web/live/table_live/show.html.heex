@@ -1,7 +1,8 @@
 <div class="p-4">
   <div :if={@live_action == :join}>
-    <p class="text-slate-50">
-      Welcome to this Planing Poker room. Please choose a name and your role in this table.
+    <h1 class="text-3xl tracking-wide">Table: <%= @table.name %></h1>
+    <p class="mt-0.5">
+      Welcome to this Planing Poker table. Please choose a name and your role in this table.
     </p>
     <div class="flex items-center space-x-2 mt-2">
       <input
@@ -29,7 +30,8 @@
     </div>
   </div>
   <div :if={@live_action == :show}>
-    <p>You are participating as a <%= @own_role %>.</p>
+    <h1 class="text-3xl tracking-wide">Table: <%= @table.name %></h1>
+    <p class="mt-0.5">You are participating as a <%= @own_role %>.</p>
     <div class="flex mt-4 h-56 space-x-4 rounded-[24px] w-full p-4 border-2 border-slate-800">
       <p :if={filter_players(@active_players) == %{}} class="self-center mx-auto">
         No one joined yet :(

@@ -357,9 +357,8 @@ defmodule DoublepWeb.CoreComponents do
         value={@value}
         class={[
           input_border(@errors),
-          "mt-2 block w-full rounded-lg border-zinc-300 py-[7px] px-[11px]",
-          "text-zinc-900 focus:outline-none focus:ring-4 sm:text-sm sm:leading-6",
-          "phx-no-feedback:border-zinc-300 phx-no-feedback:focus:border-zinc-400 phx-no-feedback:focus:ring-zinc-800/5"
+          "mt-1 block bg-slate-900 rounded-lg border-slate-700 py-[7px] px-[11px]",
+          "text-slate-50 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm sm:leading-6"
         ]}
         {@rest}
       />
@@ -382,7 +381,7 @@ defmodule DoublepWeb.CoreComponents do
 
   def label(assigns) do
     ~H"""
-    <label for={@for} class="block text-sm font-semibold leading-6 text-zinc-800">
+    <label for={@for} class="block text-sm font-semibold leading-6 text-slate-50">
       <%= render_slot(@inner_block) %>
     </label>
     """

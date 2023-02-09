@@ -19,21 +19,6 @@ defmodule Doublep.Tables do
     Server.get_state(id)
   end
 
-  def create_random_table() do
-    id = UUID.generate()
-
-    new_table = %Table{
-      name: "Totally Random",
-      id: id,
-      slug: id
-    }
-
-    with {:ok, table} <- Repo.insert(new_table),
-         {:ok, _} <- Server.open_table(table) do
-      {:ok, table}
-    end
-  end
-
   def register_pick(table_id, picker_pid, card) do
     Server.register_pick(table_id, picker_pid, card)
   end
@@ -66,9 +51,36 @@ defmodule Doublep.Tables do
 
   """
   def create_table(attrs \\ %{}) do
-    %Table{}
-    |> Table.changeset(attrs)
-    |> Repo.insert()
+    id = UUID.generate()
+
+    result =
+      %Table{
+        id: id,
+        slug: id
+      }
+      |> Table.changeset(attrs)
+      |> Repo.insert()
+
+    with {:ok, table} <- result,
+         {:ok, _} <- Server.open_table(table) do
+      {:ok, table}
+    end
+  end
+
+  def can_enter?(%{"id" => id} = attrs) do
+    case get_table_by_slug(id) do
+      nil ->
+        changeset =
+          %Table{}
+          |> change_table_join(attrs)
+          |> Ecto.Changeset.add_error(:id, "Table not found")
+          |> Map.put(:action, :validate)
+
+        {:error, changeset}
+
+      table ->
+        {:ok, table}
+    end
   end
 
   @doc """
@@ -82,5 +94,9 @@ defmodule Doublep.Tables do
   """
   def change_table(%Table{} = table, attrs \\ %{}) do
     Table.changeset(table, attrs)
+  end
+
+  def change_table_join(%Table{} = table, attrs \\ %{}) do
+    Table.join_changeset(table, attrs)
   end
 end

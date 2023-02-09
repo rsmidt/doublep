@@ -14,8 +14,14 @@ defmodule Doublep.Tables.Table do
   @doc false
   def changeset(table, attrs) do
     table
-    |> cast(attrs, [:name, :slug])
-    |> validate_required([:name, :slug])
+    |> cast(attrs, [:name])
+    |> validate_required([:name])
     |> unique_constraint(:slug)
+  end
+
+  def join_changeset(table, attrs) do
+    table
+    |> cast(attrs, [:id])
+    |> validate_required([:id])
   end
 end
