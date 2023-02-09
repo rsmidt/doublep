@@ -1,6 +1,7 @@
 defmodule DoublepWeb.TableLive.Show do
   use DoublepWeb, :live_view
 
+  alias Ecto.Changeset
   alias Phoenix.PubSub
   alias Doublep.Tables
   alias Doublep.Tables.Table
@@ -69,6 +70,16 @@ defmodule DoublepWeb.TableLive.Show do
   end
 
   @impl true
+  def handle_event("validate_nick", %{"participant" => participant_params}, socket) do
+    changeset =
+      %{}
+      |> change_participant(participant_params)
+      |> Map.put(:action, :validate)
+
+    {:noreply, assign(socket, :participant_changeset, changeset)}
+  end
+
+  @impl true
   def handle_info({:player_joined, player}, socket) do
     socket =
       socket
@@ -126,20 +137,23 @@ defmodule DoublepWeb.TableLive.Show do
   end
 
   defp handle_join(role, %{assigns: assigns} = socket) do
-    %{table: table} = assigns
+    %{table: table, participant_changeset: participant_changeset} = assigns
 
-    case Tables.join_table(table.id, {role, self()}) do
-      :ok ->
-        {:noreply,
-         socket
-         |> assign(:own_role, role)
-         |> push_patch(to: ~p"/tables/#{table.id}")}
-
+    with {:ok, %{nickname: nickname}} <- apply_participant(participant_changeset),
+         :ok <- Tables.join_table(table.id, {role, nickname, self()}) do
+      {:noreply,
+       socket
+       |> assign(:own_role, role)
+       |> push_patch(to: ~p"/tables/#{table.id}")}
+    else
       {:error, :role_already_occupied} ->
         {:noreply,
          socket
          |> put_flash(:error, "Role already occupied")
          |> push_navigate(to: ~p"/tables/#{table.id}/join")}
+
+      {:error, %Changeset{} = changeset} ->
+        {:noreply, socket |> assign(:participant_changeset, changeset)}
 
       _error ->
         {:noreply,
@@ -147,6 +161,11 @@ defmodule DoublepWeb.TableLive.Show do
          |> put_flash(:error, "Failed to join table")
          |> push_navigate(to: ~p"/")}
     end
+  end
+
+  defp apply_participant(%Changeset{} = changeset) do
+    changeset
+    |> Changeset.apply_action(:validate)
   end
 
   defp page_title(:show, %{table: table}), do: table.name
@@ -182,6 +201,7 @@ defmodule DoublepWeb.TableLive.Show do
 
   defp assign_default(socket) do
     socket
+    |> assign(:participant_changeset, change_participant(%{}))
     |> assign(:players, [])
     |> assign(:cards, @cards)
     |> assign(:own_pick, nil)
@@ -223,4 +243,13 @@ defmodule DoublepWeb.TableLive.Show do
 
   defp filter_players(players),
     do: Enum.filter(players, fn {_, %{role: role}} -> role == :player end) |> Map.new()
+
+  defp change_participant(participant, attrs \\ %{}) do
+    types = %{nickname: :string}
+
+    {participant, types}
+    |> Changeset.cast(attrs, [:nickname])
+    |> Changeset.validate_required([:nickname])
+    |> Changeset.validate_length(:nickname, max: 8)
+  end
 end

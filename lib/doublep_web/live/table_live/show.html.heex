@@ -4,15 +4,16 @@
     <p class="mt-0.5">
       Welcome to this Planing Poker table. Please choose a name and your role in this table.
     </p>
-    <div class="flex items-center space-x-2 mt-2">
-      <input
-        type="text"
-        placeholder="Name"
-        class={[
-          "block bg-slate-900 rounded-lg border-slate-700 py-[7px] px-[11px]",
-          "text-slate-50 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm sm:leading-6"
-        ]}
-      />
+    <div class="flex items-start space-x-2 mt-2">
+      <.form :let={f} for={@participant_changeset} as={:participant} phx-change="validate_nick">
+        <.input
+          field={{f, :nickname}}
+          phx-debounce="200"
+          type="text"
+          placeholder="Name"
+          class="mt-0"
+        />
+      </.form>
       <.button
         :if={role_available?(:dealer, @active_players)}
         class="w-max"

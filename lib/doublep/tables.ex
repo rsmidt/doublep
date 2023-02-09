@@ -23,8 +23,8 @@ defmodule Doublep.Tables do
     Server.register_pick(table_id, picker_pid, card)
   end
 
-  def join_table(table_id, {role, pid}) do
-    Server.join_table(table_id, {role, "anon", pid})
+  def join_table(table_id, {role, name, pid}) do
+    Server.join_table(table_id, {role, name, pid})
   end
 
   def reveal(table_id) do

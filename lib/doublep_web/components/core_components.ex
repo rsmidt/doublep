@@ -257,6 +257,7 @@ defmodule DoublepWeb.CoreComponents do
   attr :id, :any
   attr :name, :any
   attr :label, :string, default: nil
+  attr :class, :string, default: nil
 
   attr :type, :string,
     default: "text",
@@ -359,7 +360,8 @@ defmodule DoublepWeb.CoreComponents do
         class={[
           input_border(@errors),
           "mt-1 block bg-slate-900 rounded-lg border-slate-700 py-[7px] px-[11px]",
-          "text-slate-50 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm sm:leading-6"
+          "text-slate-50 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm sm:leading-6",
+          @class
         ]}
         {@rest}
       />
