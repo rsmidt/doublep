@@ -15,14 +15,14 @@
         />
       </.form>
       <.button
-        :if={role_available?(:dealer, @active_players)}
+        disabled={!role_available?(:dealer, @active_players)}
         class="w-max"
         phx-click="join_dealer"
       >
         Join as Dealer
       </.button>
       <.button
-        :if={role_available?(:player, @active_players)}
+        disabled={!role_available?(:player, @active_players)}
         class="w-max"
         phx-click="join_player"
       >
