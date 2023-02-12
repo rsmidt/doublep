@@ -18,7 +18,7 @@ defmodule DoublepWeb.PageLive do
     ~H"""
     <div class="flex justify-center mt-10">
       <div>
-        <h1 class="text-4xl">Welcome to Doublep Planning Poker.</h1>
+        <h1 class="text-4xl">Welcome to DoubleP Planning Poker.</h1>
         <div class="mt-2 flex justify-evenly">
           <div>
             <p class="text-lg font-semibold">Create your own table:</p>
