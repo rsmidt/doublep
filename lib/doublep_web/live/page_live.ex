@@ -9,6 +9,7 @@ defmodule DoublepWeb.PageLive do
       socket
       |> assign(:table_changeset, Tables.change_table(%Table{}))
       |> assign(:enter_changeset, Tables.change_table_join(%Table{}))
+      |> assign(:page_title, "Create your room")
 
     {:ok, socket}
   end
