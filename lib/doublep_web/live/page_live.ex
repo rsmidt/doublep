@@ -60,7 +60,7 @@ defmodule DoublepWeb.PageLive do
         {:noreply,
          socket
          |> put_flash(:info, "Table created successfully")
-         |> push_navigate(to: ~p"/tables/#{table.id}")}
+         |> push_navigate(to: ~p"/tables/#{table.slug}")}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         dbg(changeset)
@@ -74,7 +74,7 @@ defmodule DoublepWeb.PageLive do
       {:ok, table} ->
         {:noreply,
          socket
-         |> push_navigate(to: ~p"/tables/#{table.id}")}
+         |> push_navigate(to: ~p"/tables/#{table.slug}")}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         dbg(changeset)

@@ -144,13 +144,13 @@ defmodule DoublepWeb.TableLive.Show do
       {:noreply,
        socket
        |> assign(:own_role, role)
-       |> push_patch(to: ~p"/tables/#{table.id}")}
+       |> push_patch(to: ~p"/tables/#{table.slug}")}
     else
       {:error, :role_already_occupied} ->
         {:noreply,
          socket
          |> put_flash(:error, "Role already occupied")
-         |> push_navigate(to: ~p"/tables/#{table.id}/join")}
+         |> push_navigate(to: ~p"/tables/#{table.slug}/join")}
 
       {:error, %Changeset{} = changeset} ->
         {:noreply, socket |> assign(:participant_changeset, changeset)}
@@ -186,7 +186,7 @@ defmodule DoublepWeb.TableLive.Show do
 
   defp maybe_redirect(socket, :show) do
     unless already_participating?(self(), socket) do
-      socket |> push_navigate(to: ~p"/tables/#{socket.assigns.table.id}/join")
+      socket |> push_navigate(to: ~p"/tables/#{socket.assigns.table.slug}/join")
     else
       socket
     end

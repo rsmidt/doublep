@@ -9,6 +9,7 @@ config :doublep, Doublep.Repo,
   username: "postgres",
   password: "postgres",
   hostname: "localhost",
+  port: 5777,
   database: "doublep_test#{System.get_env("MIX_TEST_PARTITION")}",
   pool: Ecto.Adapters.SQL.Sandbox,
   pool_size: 10

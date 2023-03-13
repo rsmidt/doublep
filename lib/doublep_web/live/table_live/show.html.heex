@@ -80,7 +80,7 @@
     <p class="mt-10">Link to this table:</p>
     <div class="flex mt-2 space-x-2 items-center">
       <div id="table-url" class="border border-2 border-slate-800 p-2 rounded">
-        <%= url(~p"/tables/#{@table.id}") %>
+        <%= url(~p"/tables/#{@table.slug}") %>
       </div>
       <.button id="table-copy-btn" phx-hook="CopyToClipboard" data-copy-target="#table-url">
         Copy to Clipboard

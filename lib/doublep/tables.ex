@@ -4,6 +4,7 @@ defmodule Doublep.Tables do
   """
 
   import Ecto.Query, warn: false
+  alias Doublep.HumanId
   alias Doublep.Tables.Server
   alias Ecto.UUID
   alias Doublep.Repo
@@ -56,7 +57,7 @@ defmodule Doublep.Tables do
     result =
       %Table{
         id: id,
-        slug: id
+        slug: HumanId.new()
       }
       |> Table.changeset(attrs)
       |> Repo.insert()
