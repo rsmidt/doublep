@@ -110,7 +110,12 @@ defmodule DoublepWeb.TableLive.Show do
 
   @impl true
   def handle_info({:cards_revealed, new_state}, socket) do
-    {:noreply, socket |> assign_new_state(new_state)}
+    socket =
+      socket
+      |> assign_new_state(new_state)
+      |> maybe_assign_firework()
+
+    {:noreply, socket}
   end
 
   @impl true
@@ -119,6 +124,15 @@ defmodule DoublepWeb.TableLive.Show do
      socket
      |> assign(:own_pick, nil)
      |> assign_new_state(new_state)}
+  end
+
+  @impl true
+  def handle_info(:hide_firework, socket) do
+    socket =
+      socket
+      |> assign(:show_firework, false)
+
+    {:noreply, socket}
   end
 
   defp handle_player_left(%{pid: pid}, socket) do
@@ -205,6 +219,7 @@ defmodule DoublepWeb.TableLive.Show do
     |> assign(:players, [])
     |> assign(:cards, @cards)
     |> assign(:own_pick, nil)
+    |> assign(:show_firework, false)
   end
 
   defp assign_table(socket, slug) do
@@ -232,6 +247,15 @@ defmodule DoublepWeb.TableLive.Show do
     |> assign(:current_votes, Map.put(socket.assigns.current_votes, pid, card))
   end
 
+  defp maybe_assign_firework(%{assigns: %{current_votes: current_votes}} = socket) do
+    if all_votes_equal?(Map.values(current_votes)) do
+      Process.send_after(self(), :hide_firework, 10000)
+      socket |> assign(:show_firework, true)
+    else
+      socket
+    end
+  end
+
   defp role_available?(:dealer, current_players) when is_map(current_players) do
     current_players
     |> Enum.all?(fn {_, %{role: role}} -> role != :dealer end)
@@ -252,4 +276,12 @@ defmodule DoublepWeb.TableLive.Show do
     |> Changeset.validate_required([:nickname])
     |> Changeset.validate_length(:nickname, max: 8)
   end
+
+  defp all_votes_equal?([first | [_ | _] = rest]) do
+    Enum.all?(rest, fn vote -> first == vote end)
+  end
+
+  defp all_votes_equal?([_ | _]), do: false
+
+  defp all_votes_equal?([]), do: false
 end
