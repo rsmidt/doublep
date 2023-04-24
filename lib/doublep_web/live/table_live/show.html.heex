@@ -39,7 +39,7 @@
       </p>
       <div
         :for={{pid, player} <- filter_players(@active_players)}
-        class="rounded-lg flex flex-col w-24 h-full p-3 text-center border-slate-700 bg-slate-800 relative"
+        class="rounded-lg flex flex-col w-[120px] h-full p-3 text-center border-slate-700 bg-slate-800 relative"
       >
         <%= case @current_state do %>
           <% :picking -> %>

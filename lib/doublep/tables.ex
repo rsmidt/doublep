@@ -7,6 +7,7 @@ defmodule Doublep.Tables do
   alias Doublep.HumanId
   alias Doublep.Tables.Server
   alias Ecto.UUID
+  alias Ecto.Changeset
   alias Doublep.Repo
 
   alias Doublep.Tables.Table
@@ -99,5 +100,14 @@ defmodule Doublep.Tables do
 
   def change_table_join(%Table{} = table, attrs \\ %{}) do
     Table.join_changeset(table, attrs)
+  end
+
+  def change_participant_join(participant, attrs \\ %{}) do
+    types = %{nickname: :string}
+
+    {participant, types}
+    |> Changeset.cast(attrs, [:nickname])
+    |> Changeset.validate_required([:nickname])
+    |> Changeset.validate_length(:nickname, max: 12)
   end
 end

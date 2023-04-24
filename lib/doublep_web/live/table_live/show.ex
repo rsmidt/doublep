@@ -73,7 +73,7 @@ defmodule DoublepWeb.TableLive.Show do
   def handle_event("validate_nick", %{"participant" => participant_params}, socket) do
     changeset =
       %{}
-      |> change_participant(participant_params)
+      |> Tables.change_participant_join(participant_params)
       |> Map.put(:action, :validate)
 
     {:noreply, assign(socket, :participant_changeset, changeset)}
@@ -215,7 +215,7 @@ defmodule DoublepWeb.TableLive.Show do
 
   defp assign_default(socket) do
     socket
-    |> assign(:participant_changeset, change_participant(%{}))
+    |> assign(:participant_changeset, Tables.change_participant_join(%{}))
     |> assign(:players, [])
     |> assign(:cards, @cards)
     |> assign(:own_pick, nil)
@@ -267,15 +267,6 @@ defmodule DoublepWeb.TableLive.Show do
 
   defp filter_players(players),
     do: Enum.filter(players, fn {_, %{role: role}} -> role == :player end) |> Map.new()
-
-  defp change_participant(participant, attrs \\ %{}) do
-    types = %{nickname: :string}
-
-    {participant, types}
-    |> Changeset.cast(attrs, [:nickname])
-    |> Changeset.validate_required([:nickname])
-    |> Changeset.validate_length(:nickname, max: 8)
-  end
 
   defp all_votes_equal?([first | [_ | _] = rest]) do
     Enum.all?(rest, fn vote -> first == vote end)
