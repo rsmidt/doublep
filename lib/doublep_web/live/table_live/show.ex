@@ -1,4 +1,5 @@
 defmodule DoublepWeb.TableLive.Show do
+  alias Doublep.Tables.Core.Game
   use DoublepWeb, :live_view
 
   alias Ecto.Changeset
@@ -135,6 +136,15 @@ defmodule DoublepWeb.TableLive.Show do
     {:noreply, socket}
   end
 
+  @impl true
+  def handle_info({:auto_reveal_timer_set, duration}, socket) do
+    socket =
+      socket
+      |> push_event("auto-reveal-timer-started", %{"duration" => duration})
+
+    {:noreply, socket}
+  end
+
   defp handle_player_left(%{pid: pid}, socket) do
     %{assigns: %{active_players: active_players}} = socket
     {:noreply, socket |> assign(:active_players, Map.delete(active_players, pid))}
@@ -216,7 +226,7 @@ defmodule DoublepWeb.TableLive.Show do
   defp assign_default(socket) do
     socket
     |> assign(:participant_changeset, Tables.change_participant_join(%{}))
-    |> assign(:players, [])
+    |> assign(:active_players, %{})
     |> assign(:cards, @cards)
     |> assign(:own_pick, nil)
     |> assign(:show_firework, false)
@@ -232,8 +242,16 @@ defmodule DoublepWeb.TableLive.Show do
     |> assign_new_state(Tables.get_table_state(table))
   end
 
-  defp assign_new_state(socket, new_state) do
-    new_state
+  defp assign_new_state(socket, %Game{} = new_state) do
+    %Game{players: players, current_votes: current_votes, state: current_state, options: options} =
+      new_state
+
+    %{
+      active_players: players,
+      current_votes: current_votes,
+      current_state: current_state,
+      options: options
+    }
     |> Enum.reduce(socket, fn {key, value}, socket -> assign(socket, key, value) end)
   end
 

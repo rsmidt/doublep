@@ -1,4 +1,7 @@
 defmodule Doublep.Tables.Server do
+  alias Doublep.Tables.Core.GameOptions
+  alias Doublep.Tables.Core.Game
+  alias Doublep.Tables.Core.Player
   alias Phoenix.PubSub
   alias Doublep.Tables.Table
   use GenServer, restart: :temporary
@@ -19,15 +22,7 @@ defmodule Doublep.Tables.Server do
   end
 
   def init(%Table{} = table) do
-    {:ok,
-     %{
-       table: table,
-       dealer: nil,
-       active_players: %{},
-       current_votes: %{},
-       past_votes: [],
-       state: :picking
-     }}
+    {:ok, Game.new(table, GameOptions.new())}
   end
 
   def open_table(%Table{} = table) do
@@ -63,169 +58,134 @@ defmodule Doublep.Tables.Server do
 
   # Server API
 
-  def handle_call(:get_state, _, state) do
-    {:reply, get_state_projection(state), state}
+  def handle_call(:get_state, _, %Game{} = state) do
+    {:reply, state, state}
   end
 
-  def handle_call({:join_table, role, name, pid}, _, state) do
-    handle_join({role, name, pid}, state)
-  end
+  def handle_call({:join_table, role, name, pid}, _, %Game{} = state) do
+    case Game.join_player(state, role, name, pid) do
+      {:ok, next_state} ->
+        Process.monitor(pid)
 
-  def handle_call({:register_pick, picker_pid, card}, _, %{table: table} = state) do
-    with {:ok, player} <- find_player(state, picker_pid),
-         :ok <- voting_enabled?(state) do
-      PubSub.broadcast!(Doublep.PubSub, topic(table.id), {:player_picked, player, card})
-      {:reply, :ok, put_in(state, [:current_votes, picker_pid], card)}
-    else
-      error -> {:reply, error, state}
+        broadcast!(next_state, {:player_joined, next_state.players[pid]})
+
+        {:reply, :ok, next_state}
+
+      error ->
+        {:reply, error, state}
     end
   end
 
-  def handle_call(:reveal, _, %{table: table} = state) do
-    with :ok <- state_allowed?(state, :revealing) do
-      next_state = Map.put(state, :state, :revealing)
+  def handle_call({:register_pick, picker_pid, card}, _, %Game{} = state) do
+    case Game.register_vote(state, picker_pid, card) do
+      {:ok, next_state} ->
+        broadcast!(next_state, {:player_picked, next_state.players[picker_pid], card})
 
-      PubSub.broadcast!(
-        Doublep.PubSub,
-        topic(table.id),
-        {:cards_revealed, get_state_projection(next_state)}
-      )
+        next_state
+        |> cancel_auto_reveal_timer()
+        |> maybe_set_auto_timer()
 
-      {:reply, :ok, next_state}
-    else
-      error -> {:reply, error, state}
+      error ->
+        {:reply, error, state}
     end
   end
 
-  def handle_call(:next_hand, _, %{table: table} = state) do
-    with :ok <- state_allowed?(state, :picking) do
-      next_state = prepare_next_hand(state)
+  def handle_call(:reveal, _, %Game{} = state) do
+    case Game.reveal(state) do
+      {:ok, next_state} ->
+        broadcast!(next_state, {:cards_revealed, next_state})
+        {:reply, :ok, next_state}
 
-      PubSub.broadcast!(
-        Doublep.PubSub,
-        topic(table.id),
-        {:next_hand_dealt, get_state_projection(next_state)}
-      )
-
-      {:reply, :ok, next_state}
-    else
-      error -> {:reply, error, state}
+      error ->
+        {:reply, error, state}
     end
   end
 
-  defp get_state_projection(state) do
-    %{past_votes: past_votes, current_votes: current_votes, state: current_state} = state
+  def handle_call(:next_hand, _, %Game{} = state) do
+    case Game.next_hand(state) do
+      {:ok, next_state} ->
+        broadcast!(next_state, {:next_hand_dealt, next_state})
+        {:reply, :ok, next_state}
 
-    %{
-      active_players: list_players(state),
-      past_votes: past_votes,
-      current_votes: current_votes,
-      current_state: current_state
-    }
-  end
-
-  defp prepare_next_hand(%{current_votes: current_votes, past_votes: past_votes} = state) do
-    state
-    |> Map.put(:past_votes, [current_votes | past_votes])
-    |> Map.put(:current_votes, %{})
-    |> Map.put(:state, :picking)
-  end
-
-  defp state_allowed?(%{state: :picking}, :revealing), do: :ok
-  defp state_allowed?(%{state: :picking}, :picking), do: :ok
-  defp state_allowed?(%{state: :revealing}, :picking), do: :ok
-  defp state_allowed?(_, next_state), do: {:error, {:state_not_allowed, next_state}}
-
-  defp voting_enabled?(%{state: :picking}), do: :ok
-  defp voting_enabled?(%{state: :revealing}), do: :ok
-  defp voting_enabled?(_), do: {:error, :picking_not_allowed}
-
-  defp find_player(%{active_players: players}, player_pid) do
-    case Map.get(players, player_pid) do
-      nil -> {:error, :not_participating}
-      player -> {:ok, player}
+      error ->
+        {:reply, error, state}
     end
-  end
-
-  defp list_players(%{dealer: nil, active_players: active_players}) do
-    active_players
-  end
-
-  defp list_players(%{dealer: dealer, active_players: active_players}) do
-    Map.put(active_players, dealer.pid, dealer)
-  end
-
-  defp handle_join({:dealer, name, pid}, %{dealer: nil} = state) do
-    Process.monitor(pid)
-
-    player = %{role: :dealer, name: name, pid: pid}
-
-    PubSub.broadcast!(
-      Doublep.PubSub,
-      topic(state.table.id),
-      {:player_joined, player}
-    )
-
-    {:reply, :ok, Map.put(state, :dealer, player)}
-  end
-
-  defp handle_join({:player, name, pid}, state) do
-    Process.monitor(pid)
-
-    player = %{role: :player, name: name, pid: pid}
-
-    PubSub.broadcast!(
-      Doublep.PubSub,
-      topic(state.table.id),
-      {:player_joined, player}
-    )
-
-    {:reply, :ok, put_in(state, [:active_players, pid], player)}
-  end
-
-  defp handle_join(_, state) do
-    {:reply, {:error, :role_already_occupied}, state}
   end
 
   def handle_info({:DOWN, _ref, :process, object, _reason}, state) do
     handle_leave(object, state)
   end
 
-  defp handle_leave(left_pid, %{table: table, dealer: %{pid: pid} = dealer} = state)
-       when left_pid == pid do
-    PubSub.broadcast!(Doublep.PubSub, topic(table.id), {:dealer_left, dealer})
+  def handle_info(:auto_reveal_timer, %Game{} = state) do
+    case Game.reveal(state) do
+      {:ok, next_state} ->
+        broadcast!(next_state, {:cards_revealed, next_state})
+        {:noreply, next_state}
 
-    state
-    |> Map.put(:dealer, nil)
-    |> shutdown_if_empty()
-  end
-
-  defp handle_leave(left_pid, %{table: table, active_players: players} = state) do
-    case Map.get(players, left_pid) do
-      nil ->
-        {:noreply, state}
-
-      player ->
-        PubSub.broadcast!(Doublep.PubSub, topic(table.id), {:player_left, player})
-
-        state
-        |> Map.put(:active_players, remove_player(players, left_pid))
-        |> shutdown_if_empty()
+      error ->
+        {:noreply, error, state}
     end
   end
 
-  defp shutdown_if_empty(%{active_players: players, dealer: nil} = state)
-       when map_size(players) == 0 do
-    Logger.info("Shutting down Server because all players left")
+  defp cancel_auto_reveal_timer(%Game{} = state) do
+    %Game{auto_reveal_timer_ref: timer_ref} = state
+
+    if timer_ref != nil do
+      Process.cancel_timer(timer_ref)
+      struct!(state, auto_reveal_timer_ref: nil)
+    else
+      state
+    end
+  end
+
+  defp maybe_set_auto_timer(%Game{options: options} = state) do
+    with :auto <- options.moderation_mode,
+         :voting <- state.state,
+         true <- Game.all_voted?(state) do
+      broadcast!(state, {:auto_reveal_timer_set, 5000})
+
+      pid = Process.send_after(self(), :auto_reveal_timer, 5000)
+      {:reply, :ok, struct!(state, auto_reveal_timer_ref: pid)}
+    else
+      _ ->
+        {:reply, :ok, state}
+    end
+  end
+
+  defp handle_leave(left_pid, state) do
+    %Game{players: players, table: table} = state
+
+    with %Player{} = player <- Map.get(players, left_pid),
+         {:ok, next_state} <- Game.remove_player(state, left_pid) do
+      broadcast_player_left!(table, player)
+      maybe_shutdown(next_state)
+    else
+      nil ->
+        {:noreply, state}
+
+      error ->
+        {:reply, error, state}
+    end
+  end
+
+  defp broadcast_player_left!(%Game{} = state, %Player{role: :dealer} = player) do
+    broadcast!(state, {:dealer_left, player})
+  end
+
+  defp broadcast_player_left!(%Game{} = state, %Player{role: :player} = player) do
+    broadcast!(state, {:player_left, player})
+  end
+
+  defp maybe_shutdown(%Game{players: players} = state) when map_size(players) == 0 do
     {:stop, :shutdown, state}
   end
 
-  defp shutdown_if_empty(state) do
+  defp maybe_shutdown(%Game{} = state) do
     {:noreply, state}
   end
 
-  defp remove_player(players, pid) do
-    Map.delete(players, pid)
+  defp broadcast!(%Game{table: table}, message) do
+    PubSub.broadcast!(Doublep.PubSub, topic(table.id), message)
   end
 
   defp topic(table_id), do: Doublep.Tables.table_topic(table_id)

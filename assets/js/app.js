@@ -50,6 +50,29 @@ Hooks.CopyToClipboard = {
     }
 }
 
+let intervalRef;
+let current;
+
+Hooks.AutoRevealTimer = {
+    mounted() {
+        this.handleEvent("auto-reveal-timer-started", data => {
+            clearInterval(intervalRef)
+            current = data.duration;
+            this.el.innerHTML = `${current / 1000} second(s) to auto-reveal`
+
+            intervalRef = setInterval(() => {
+                current -= 1000
+                if (current <= 0) {
+                    clearInterval(intervalRef)
+                    this.el.innerHTML = ''
+                } else {
+                    this.el.innerHTML = `${current / 1000} second(s) to auto-reveal`
+                }
+            }, 1000)
+        })
+    }
+}
+
 
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let liveSocket = new LiveSocket("/live", Socket, { params: { _csrf_token: csrfToken }, hooks: Hooks })
