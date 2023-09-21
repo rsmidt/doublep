@@ -13,7 +13,6 @@ defmodule Doublep.Tables.Core.Game do
             past_votes: [],
             auto_reveal_timer_ref: nil
 
-
   def new(%Table{} = table, %GameOptions{} = options) do
     %Game{
       table: table,

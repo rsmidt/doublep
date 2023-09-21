@@ -6,6 +6,7 @@ defmodule DoublepWeb.TableLive.Show do
   alias Phoenix.PubSub
   alias Doublep.Tables
   alias Doublep.Tables.Table
+  alias Doublep.EmojiGen
 
   @cards [1, 2, 3, 5, 8, 13]
 
@@ -225,11 +226,18 @@ defmodule DoublepWeb.TableLive.Show do
 
   defp assign_default(socket) do
     socket
-    |> assign(:participant_changeset, Tables.change_participant_join(%{}))
+    |> assign(:participant_changeset, Tables.change_participant_join(%{nickname: random_emoji()}))
     |> assign(:active_players, %{})
     |> assign(:cards, @cards)
     |> assign(:own_pick, nil)
     |> assign(:show_firework, false)
+  end
+
+  defp random_emoji() do
+    EmojiGen.emojis()
+    |> Enum.random()
+    |> String.split(",")
+    |> hd()
   end
 
   defp assign_table(socket, slug) do
