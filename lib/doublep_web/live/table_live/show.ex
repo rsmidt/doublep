@@ -226,7 +226,7 @@ defmodule DoublepWeb.TableLive.Show do
 
   defp assign_default(socket) do
     socket
-    |> assign(:participant_changeset, Tables.change_participant_join(%{}))
+    |> assign_new(:participant_changeset, fn -> Tables.change_participant_join(%{username: random_emoji()}) end)
     |> assign(:active_players, %{})
     |> assign(:cards, @cards)
     |> assign(:own_pick, nil)

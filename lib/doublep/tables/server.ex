@@ -157,7 +157,7 @@ defmodule Doublep.Tables.Server do
 
     with %Player{} = player <- Map.get(players, left_pid),
          {:ok, next_state} <- Game.remove_player(state, left_pid) do
-      broadcast_player_left!(table, player)
+      broadcast_player_left!(next_state, player)
       maybe_shutdown(next_state)
     else
       nil ->
